@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Barcode Scanner</title>
-    <script src="https://unpkg.com/zxing-js/library@0.18.1/zxing.js"></script>
+    <script src="https://unpkg.com/zxing-js/library@0.18.3/zxing.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <style>
         #scanner-container {
@@ -38,36 +38,10 @@
         
         // Initialize the result display div
         const resultDiv = document.getElementById('result');
-        
-        // Initialize the barcode scanner
-        let codeReader = null;
+        let codeReader = new ZXing.BrowserMultiFormatReader();
 
-        // Initialize the scanner when the "Start Scan" button is clicked
-        document.getElementById('startScan').addEventListener('click', function() {
-            const selectedDeviceId = null; // Use the default device
-            const constraints = {
-                video: {
-                    facingMode: 'environment',
-                    deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined
-                }
-            };
-            
-            codeReader = new ZXing.BrowserQRCodeReader();
-            
-            codeReader
-                .decodeFromVideoDevice(selectedDeviceId, 'scanner-container', constraints, (result, err) => {
-                    if (result) {
-                        displayScannedBarcode(result.text);
-                    } else if (err && !(err instanceof ZXing.NotFoundException)) {
-                        console.error(err);
-                        alert('Error reading barcode: ' + err);
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Error starting camera: ' + err);
-                });
-        });
+        // Initialize the accepted barcode list
+        let acceptedBarcodes = [];
 
         // Function to handle file upload
         function handleFileUpload(event) {
@@ -86,26 +60,41 @@
 
         // Function to update the list of accepted barcodes
         function updateAcceptedBarcodes(csvData) {
-            acceptedBarcodesList.innerHTML = ''; // Clear the list
-            const lines = csvData.split('\n');
-            for (let i = 0; i < lines.length; i++) {
-                const row = lines[i].trim();
-                if (row !== '') {
-                    const listItem = document.createElement('li');
-                    listItem.innerText = row;
-                    acceptedBarcodesList.appendChild(listItem);
-                }
-            }
+            acceptedBarcodes = csvData.split('\n').map(barcode => barcode.trim());
+            displayAcceptedBarcodes();
         }
+
+        // Function to display accepted barcodes
+        function displayAcceptedBarcodes() {
+            acceptedBarcodesList.innerHTML = ''; // Clear the list
+            acceptedBarcodes.forEach(barcode => {
+                const listItem = document.createElement('li');
+                listItem.innerText = barcode;
+                acceptedBarcodesList.appendChild(listItem);
+            });
+        }
+
+        // Function to start scanning when the "Start Scan" button is clicked
+        document.getElementById('startScan').addEventListener('click', function() {
+            codeReader.decodeFromVideoDevice(undefined, 'scanner-container', (result, err) => {
+                if (result) {
+                    const scannedBarcode = result.text;
+                    displayScannedBarcode(scannedBarcode);
+                }
+                if (err) {
+                    console.error(err);
+                }
+            });
+        });
 
         // Function to display scanned barcode and match status
         function displayScannedBarcode(scannedBarcode) {
-            const acceptedBarcodes = Array.from(acceptedBarcodesList.children).map(item => item.innerText);
-            
+            resultDiv.innerHTML = `<strong>Scanned Barcode:</strong> ${scannedBarcode}<br/>`;
+
             if (acceptedBarcodes.includes(scannedBarcode)) {
-                resultDiv.innerHTML = `<strong>Scanned Barcode:</strong> ${scannedBarcode}<br/><span style="color:green;"><strong>Match found in accepted barcodes.</strong></span>`;
+                resultDiv.innerHTML += `<span style="color:green;"><strong>Match found in accepted barcodes.</strong></span>`;
             } else {
-                resultDiv.innerHTML = `<strong>Scanned Barcode:</strong> ${scannedBarcode}<br/><span style="color:red;"><strong>No match found in accepted barcodes.</strong></span>`;
+                resultDiv.innerHTML += `<span style="color:red;"><strong>No match found in accepted barcodes.</strong></span>`;
             }
         }
 
