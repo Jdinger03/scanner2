@@ -43,10 +43,7 @@
         }
         
         // Function to compare scanned barcode with .csv data
-        function compareBarcodes(csvData) {
-            // Simulated barcode value (replace with actual barcode scanning logic)
-            const scannedBarcode = "123456789";
-            
+        function compareBarcodes(csvData, scannedBarcode) {
             // Parse the .csv data
             const lines = csvData.split('\n');
             for (let i = 0; i < lines.length; i++) {
@@ -54,10 +51,11 @@
                 const id = row[0]; // Assuming the barcode is in the first column
                 if (id === scannedBarcode) {
                     resultDiv.innerText = `Match found for ID: ${id}`;
-                    return;
+                    return true; // Return true for a successful match
                 }
             }
-            resultDiv.innerText = 'No match found.';
+            resultDiv.innerText = `No match found for Barcode: ${scannedBarcode}`;
+            return false; // Return false for no match
         }
         
         // Initialize QuaggaJS for barcode scanning when the "Start Scan" button is clicked
@@ -72,7 +70,7 @@
                     },
                 },
                 decoder: {
-                    readers: ["code_128_reader", "ean_reader", "upc_reader"],
+                    readers: ["code_39_reader"], // Specify Code 39 reader
                 },
             }, function(err) {
                 if (err) {
@@ -83,9 +81,17 @@
                 Quagga.start();
                 Quagga.onDetected(function(result) {
                     const scannedBarcode = result.codeResult.code;
+                    const match = compareBarcodes(csvData, scannedBarcode);
+                    if (match) {
+                        // Indicate success
+                        resultDiv.classList.remove('error');
+                        resultDiv.classList.add('success');
+                    } else {
+                        // Indicate failure
+                        resultDiv.classList.remove('success');
+                        resultDiv.classList.add('error');
+                    }
                     resultDiv.innerText = `Scanned Barcode: ${scannedBarcode}`;
-                    // Compare the scanned barcode with .csv data
-                    // You can call the compareBarcodes function here
                 });
             });
         });
@@ -93,5 +99,16 @@
     
     <!-- Container for the barcode scanner video feed -->
     <div id="scanner-container"></div>
+    
+    <style>
+        /* CSS styles for success and error indications */
+        .success {
+            color: green;
+        }
+        
+        .error {
+            color: red;
+        }
+    </style>
 </body>
 </html>
