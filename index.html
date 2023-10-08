@@ -2,16 +2,13 @@
 <html>
 <head>
     <title>Barcode Scanner</title>
-    <script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
+    <script src="https://unpkg.com/zxing-js/library@0.18.1/zxing.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <style>
         #scanner-container {
             width: 100%;
             height: auto;
             margin: 20px 0;
-        }
-        #result {
-            font-weight: bold;
         }
     </style>
 </head>
@@ -42,35 +39,34 @@
         // Initialize the result display div
         const resultDiv = document.getElementById('result');
         
-        // Initialize QuaggaJS for barcode scanning when the "Start Scan" button is clicked
+        // Initialize the barcode scanner
+        let codeReader = null;
+
+        // Initialize the scanner when the "Start Scan" button is clicked
         document.getElementById('startScan').addEventListener('click', function() {
-            Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: document.querySelector('#scanner-container'),
-                    constraints: {
-                        facingMode: "environment",
-                        width: 640,  // Adjust width and height for better detection
-                        height: 480,
-                    },
-                },
-                decoder: {
-                    readers: ["code_39_reader"],
-                },
-            }, function(err) {
-                if (err) {
-                    console.error(err);
-                    alert('Error initializing barcode scanner.');
-                    return;
+            const selectedDeviceId = null; // Use the default device
+            const constraints = {
+                video: {
+                    facingMode: 'environment',
+                    deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined
                 }
-                Quagga.start();
-            });
+            };
             
-            Quagga.onDetected(function(result) {
-                const scannedBarcode = result.codeResult.code;
-                displayScannedBarcode(scannedBarcode);
-            });
+            codeReader = new ZXing.BrowserQRCodeReader();
+            
+            codeReader
+                .decodeFromVideoDevice(selectedDeviceId, 'scanner-container', constraints, (result, err) => {
+                    if (result) {
+                        displayScannedBarcode(result.text);
+                    } else if (err && !(err instanceof ZXing.NotFoundException)) {
+                        console.error(err);
+                        alert('Error reading barcode: ' + err);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error starting camera: ' + err);
+                });
         });
 
         // Function to handle file upload
