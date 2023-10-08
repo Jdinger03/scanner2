@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Barcode Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+    <h1>Barcode Scanner</h1>
+    
+    <!-- File input for uploading the .csv file -->
+    <input type="file" id="csvFile" accept=".csv" />
+    
+    <!-- Button to start scanning -->
+    <button id="startScan">Start Scan</button>
+    
+    <!-- Display the scanned barcode result -->
+    <div id="result"></div>
+    
+    <script>
+        // Initialize file input
+        const csvFileInput = document.getElementById('csvFile');
+        
+        // Initialize the result display div
+        const resultDiv = document.getElementById('result');
+        
+        // Listen for file input change event
+        csvFileInput.addEventListener('change', handleFileUpload);
+        
+        // Function to handle file upload
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Read the uploaded .csv file
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Parse the .csv data
+                    const csvData = e.target.result;
+                    compareBarcodes(csvData);
+                };
+                reader.readAsText(file);
+            }
+        }
+        
+        // Function to compare scanned barcode with .csv data
+        function compareBarcodes(csvData) {
+            // Simulated barcode value (replace with actual barcode scanning logic)
+            const scannedBarcode = "123456789";
+            
+            // Parse the .csv data
+            const lines = csvData.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                const row = lines[i].split(',');
+                const id = row[0]; // Assuming the barcode is in the first column
+                if (id === scannedBarcode) {
+                    resultDiv.innerText = `Match found for ID: ${id}`;
+                    return;
+                }
+            }
+            resultDiv.innerText = 'No match found.';
+        }
+        
+        // Initialize QuaggaJS for barcode scanning when the "Start Scan" button is clicked
+        document.getElementById('startScan').addEventListener('click', function() {
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#scanner-container'),
+                    constraints: {
+                        facingMode: "environment",
+                    },
+                },
+                decoder: {
+                    readers: ["code_128_reader", "ean_reader", "upc_reader"],
+                },
+            }, function(err) {
+                if (err) {
+                    console.error(err);
+                    alert('Error initializing barcode scanner.');
+                    return;
+                }
+                Quagga.start();
+                Quagga.onDetected(function(result) {
+                    const scannedBarcode = result.codeResult.code;
+                    resultDiv.innerText = `Scanned Barcode: ${scannedBarcode}`;
+                    // Compare the scanned barcode with .csv data
+                    // You can call the compareBarcodes function here
+                });
+            });
+        });
+    </script>
+    
+    <!-- Container for the barcode scanner video feed -->
+    <div id="scanner-container"></div>
+</body>
+</html>
